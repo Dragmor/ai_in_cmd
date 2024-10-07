@@ -13,7 +13,7 @@ init(autoreset=True)
 API_KEY = 'токен вставь сюда'
 API_URL = 'https://api.mistral.ai/v1/chat/completions'
 HISTORY_FILE = 'history.json'  # Файл для хранения истории
-MAX_CONTEXT_MESSAGES = 50  # Максимальное количество сообщений в контексте (по умолчанию)
+MAX_CONTEXT_MESSAGES = 50  # Максимальное количество сообщений в контексте (по умолчанию) 
 
 def load_history():
     if os.path.exists(HISTORY_FILE):
@@ -33,16 +33,18 @@ def clear_history():
     else:
         print(Fore.YELLOW + "История уже пуста.")
 
-def send_message(messages, max_tokens=128000):
+def send_message(messages):
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {API_KEY}',
     }
 
+    while estimate_tokens(messages) > 32000:
+        messages.pop(0)
+
     payload = {
         'model': 'mistral-large-latest',
         'messages': messages,
-        'max_tokens': max_tokens,
         'temperature': 0.7,
         'top_p': 0.95,
     }
@@ -55,7 +57,7 @@ def send_message(messages, max_tokens=128000):
     elif response.status_code == 429:
         print(Fore.RED + 'Превышен лимит запросов. Ждём 5 секунд перед повторной попыткой.')
         time.sleep(5)
-        return send_message(messages, max_tokens)
+        return send_message(messages)
     else:
         print(Fore.RED + f'Ошибка {response.status_code}: {response.text}')
         return None
@@ -63,7 +65,7 @@ def send_message(messages, max_tokens=128000):
 def estimate_tokens(messages):
     total_length = 0
     for msg in messages:
-        total_length += len(msg['content'].split())
+        total_length += len(msg['content']) // 2 # считаем что 2 символа это примерно 1 токен
     return total_length
 
 def main():
